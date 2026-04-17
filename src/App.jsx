@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import "./App.css";
 import jsPDF from "jspdf";
 import { Menu, Send, Play, Square, Trash2, FileText, History, Moon, ArrowLeft } from "lucide-react";
 
@@ -17,7 +18,7 @@ function App() {
   const isManuallyStopped = useRef(false);
   const [speechTranscript, setSpeechTranscript] = useState("");
   const [typedTranscript, setTypedTranscript] = useState("");
-  const [page, setPage] = useState("main"); // "main" | "history" | "results"
+  const [page, setPage] = useState("main"); // "main" | "history" | "results" | "actions" | "about"
   const [history, setHistory] = useState([]);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -26,9 +27,12 @@ function App() {
   const analyserRef = useRef(null);
   const dataArrayRef = useRef(null);
   const [volume, setVolume] = useState(0);
-
+  const inputRef = useRef(null);
   const recognitionRef = useRef(null);
   const chatRef = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const speechBufferRef = useRef("");
+  const lastSpeechTimeRef = useRef(Date.now());
 
   // ---------- AUTO SCROLL ----------
   useEffect(() => {
@@ -119,7 +123,7 @@ function App() {
     recognition.lang = "en-US";
 
     recognition.onresult = (event) => {
-      if (isManuallyStopped.current) return; // 🚫 STOP adding messages
+      if (isManuallyStopped.current) return;
 
       let interim = "";
       let final = "";
@@ -127,12 +131,9 @@ function App() {
       for (let i = 0; i < event.results.length; i++) {
         const result = event.results[i][0];
         const text = result.transcript;
-        const confidence = result.confidence;
 
         if (event.results[i].isFinal) {
-          if (confidence > 0.6) {
-            final += text + " ";
-          }
+          final += text + " ";
         } else {
           interim += text;
         }
@@ -140,22 +141,13 @@ function App() {
 
       setLiveText(interim);
 
-      if (final && volume > 25) {
-        setSpeechTranscript((prev) => prev + final);
+      if (final && final.trim().length > 2 && volume > 25) {
+        const clean = final.trim();
 
-        if (final && final.trim().length > 5 && volume > 25)
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            text: final,
-            time: new Date().toLocaleTimeString(),
-            sender: "speaker",
-          },
-        ]);
+        // 👉 add to buffer instead of instantly sending
+        speechBufferRef.current += clean + " ";
+        lastSpeechTimeRef.current = Date.now();
       }
-
-      
     };
 
     // ✅ ONLY ONE onend
@@ -315,19 +307,26 @@ function App() {
   const addManualMessage = () => {
     if (!manualInput.trim()) return;
 
-    setTypedTranscript((prev) => prev + manualInput + " "); // ✅ separate
+    const clean = manualInput.trim();
+
+    setTypedTranscript((prev) => prev + clean + " ");
 
     setMessages((prev) => [
       ...prev,
       {
-        text: manualInput,
+        text: clean,
         time: new Date().toLocaleTimeString(),
         sender: "user",
       },
     ]);
 
-    setManualInput(""); //clear input
+    setManualInput("");
+
+    if (inputRef.current) {
+      inputRef.current.style.height = "19px"; // reset to 1 line
+    }
   };
+
   // ---------- PDF ----------
   const exportPDF = () => {
     const logo = "/botlhale-logo.png";
@@ -406,7 +405,7 @@ function App() {
     checkPageBreak();
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text("Transcript", 10, y);
+    doc.setFontSize(10);
 
     addHeading("Transcript");
 
@@ -456,7 +455,7 @@ function App() {
 
     // ---------- ACTIONS ----------
     checkPageBreak();
-    doc.setFontSize(14);
+    doc.setFontSize(12);
     doc.text("Action Items", 10, y);
     y += 7;
 
@@ -513,7 +512,8 @@ function App() {
     background: theme.card,
     padding: isMobile ? "14px" : "20px", // ✅ smaller on mobile
     borderRadius: "10px",
-    marginBottom: "16px",
+    height: "70vh",
+    transition: "background 0.4s ease, color 0.4s ease, border 0.4s ease",
   };
 
   useEffect(() => {
@@ -582,6 +582,12 @@ function App() {
   100% { transform: scale(1); opacity: 1; }
 }
 `;
+  const handleInput = (e) => {
+    setManualInput(e.target.value);
+
+    e.target.style.height = "auto";
+    e.target.style.height = e.target.scrollHeight + "px";
+  };
 
   useEffect(() => {
     const style = document.createElement("style");
@@ -591,14 +597,56 @@ function App() {
     return () => document.head.removeChild(style);
   }, []);
 
+  useEffect(() => {
+    if (!isListening) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastSpeech = now - lastSpeechTimeRef.current;
+
+      // 👉 if user stopped speaking for 1.2s → send message
+      if (
+        speechBufferRef.current.trim().length > 0 &&
+        timeSinceLastSpeech > 1200
+      ) {
+        const message = speechBufferRef.current.trim();
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            text: message,
+            time: new Date().toLocaleTimeString(),
+            sender: "speaker",
+          },
+        ]);
+
+        speechBufferRef.current = "";
+      }
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isListening]);
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem("darkMode");
+    if (savedMode !== null) {
+      setDarkMode(JSON.parse(savedMode));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("darkMode", JSON.stringify(darkMode));
+  }, [darkMode]);
+
   return (
     <div
       style={{
         display: "flex",
-        flexDirection: isMobile ? "column" : "row", // ✅ KEY FIX
+        flexDirection: isMobile ? "column" : "row",
         height: "100vh",
         background: theme.bg,
         color: theme.text,
+        transition: "background 0.4s ease, color 0.4s ease",
       }}
     >
       {/* SIDEBAR */}
@@ -608,18 +656,17 @@ function App() {
           top: isMobile ? "88px" : "0",
           left: 0,
           height: isMobile ? "calc(100vh - 88px)" : "auto",
-          width: isMobile ? "260px" : "220px", // 👈 drawer width
+          width: isMobile ? "260px" : "220px",
           background: theme.sidebar,
           zIndex: 30,
 
-          // 🔥 SLIDE EFFECT
           transform: isMobile
             ? showMenu
               ? "translateX(0)"
               : "translateX(-100%)"
             : "none",
 
-          transition: "transform 0.3s ease",
+          transition: "transform 0.3s ease, background 0.4s ease",
           boxShadow: isMobile && showMenu ? "2px 0 10px rgba(0,0,0,0.3)" : "none",
         }}
       >
@@ -674,22 +721,7 @@ function App() {
             </div>
 
             {/* DARK MODE */}
-            <div
-              onClick={() => setDarkMode(!darkMode)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: isMobile ? "14px" : "10px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                background: darkMode ? "#3a3a3a" : "#f1f1f1",
-                marginBottom: "10px",
-              }}
-            >
-              <Moon size={18} />
-              <span>Dark Mode</span>
-            </div>
+
           </div>
 
           {/* BOTTOM ACTIONS */}
@@ -799,6 +831,27 @@ function App() {
 
           <button
             onClick={() => {
+              setPage("about");
+              setShowMenu(false);
+            }}
+            style={{
+              width: "100%",
+              padding: isMobile ? "14px" : "10px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#6366f1",
+              color: "white",
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginBottom: "10px",
+              marginTop: "85px", // push to bottom
+            }}
+          >
+            ℹ️ About
+          </button>
+
+          <button
+            onClick={() => {
               if (window.confirm("Are you sure you want to log out?")) {
                 // Clear all data and reset states
                 setPage("main");
@@ -817,7 +870,6 @@ function App() {
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
-              marginTop: "85px", // push to bottom
             }}
           >
             Log out
@@ -829,41 +881,18 @@ function App() {
 
       {page === "main" ? (
         // MAIN PAGE
-        <div style={{ flex: 1, padding: isMobile ? "10px" : "20px", overflowY: "auto" }}>
+        <div className="animated-bg" style={{
+          flex: 1,
+          paddingTop: isMobile ? "10px" : "0px",
+          paddingBottom: isMobile ? "10px" : "0px",
+          paddingLeft: isMobile ? "10px" : "20px",
+          paddingRight: isMobile ? "10px" : "20px",
+          overflowY: "auto"
+        }}>
           {!isMobile && (
-            <h1 style={{ textAlign: "center", color: theme.text }}>
+            <h1 className="text-white p-10">
               🎤 Smart Meeting Tool
             </h1>
-          )}
-          {isListening && (
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-
-              {/* 🔊 Volume Bar */}
-              <div
-                style={{
-                  width: "100px",
-                  height: "10px",
-                  background: "#ddd",
-                  borderRadius: "5px",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${Math.min(volume, 100)}%`,
-                    height: "100%",
-                    background: volume > 50 ? "#22c55e" : "#ef4444",
-                    transition: "width 0.1s",
-                  }}
-                />
-              </div>
-
-              {/* TEXT */}
-              <div style={{ textAlign: "center" }}>
-                {isListening && volume > 10 ? "🎤 Hearing sound..." : "⚠️ Speak louder..."}
-              </div>
-
-            </div>
           )}
 
           {isMobile && (
@@ -888,15 +917,66 @@ function App() {
                   border: "none",
                   cursor: "pointer",
                   color: theme.text,
+                  marginRight: "50px",
                 }}
               >
                 {showMenu ? <ArrowLeft size={22} /> : <Menu size={22} />}
               </button>
 
               {/* TITLE CHANGES */}
-              <strong style={{ fontSize: "16px" }}>
-                {showMenu ? "Menu" : "Smart Meeting Tool"}
-              </strong>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between", // 👈 key fix
+                  width: "100%",
+                }}
+              >
+                {/* LEFT SIDE */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <strong style={{ fontSize: "16px" }}>
+                    {showMenu ? "Menu" : "Smart Meeting Tool"}
+                  </strong>
+                </div>
+
+                {/* RIGHT SIDE (DARK MODE SWITCH) */}
+                <div
+                  onClick={() => setDarkMode(!darkMode)}
+                  style={{
+                    width: "52px",
+                    height: "26px",
+                    borderRadius: "999px",
+                    background: darkMode ? "#1f2937" : "#fbbf24",
+                    position: "relative",
+                    cursor: "pointer",
+                    transition: "0.3s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "2px",
+                    boxShadow: "inset 0 0 5px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "22px",
+                      height: "22px",
+                      borderRadius: "50%",
+                      background: darkMode ? "#374151" : "#fff7ed",
+                      position: "absolute",
+                      top: "2px",
+                      left: darkMode ? "28px" : "2px",
+                      transition: "0.3s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "12px",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                    }}
+                  >
+                    {darkMode ? "🌙" : "☀️"}
+                  </div>
+                </div>
+              </div>
 
               <div style={{ width: "22px" }} />
             </div>
@@ -930,6 +1010,36 @@ function App() {
               )}
             </div>
 
+            {isListening && (
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+
+                {/* 🔊 Volume Bar */}
+                <div
+                  style={{
+                    width: "100px",
+                    height: "10px",
+                    background: "#ddd",
+                    borderRadius: "5px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.min(volume, 100)}%`,
+                      height: "100%",
+                      background: volume > 50 ? "#22c55e" : "#ef4444",
+                      transition: "width 0.1s",
+                    }}
+                  />
+                </div>
+
+                {/* TEXT */}
+                <div style={{ textAlign: "center", fontSize: "14px", opacity: 0.8 }}>
+                  {isListening && volume > 10 ? "🎤 Hearing sound..." : "⚠️ Speak louder..."}
+                </div>
+
+              </div>
+            )}
             {isListening && (
               <div style={{ display: "flex", marginLeft: "auto", alignItems: "center", gap: "10px" }}>
                 <div style={pulseStyle}></div>
@@ -968,13 +1078,13 @@ function App() {
             <div
               ref={chatRef}
               style={{
-                maxHeight: "300px",
+                fontFamily: "Arial",
                 overflowY: "auto",
                 display: "flex",
                 flexDirection: "column",
                 gap: "10px",
                 marginBottom: "10px",
-                height: "50vh",
+                height: "58vh",
               }}
             >
               {messages.map((msg, i) => (
@@ -989,13 +1099,15 @@ function App() {
                     maxWidth: "70%",
                     alignSelf:
                       msg.sender === "user" ? "flex-end" : "flex-start",
+                    wordBreak: "break-word",
+                    overflowWrap: "anywhere",
                   }}
                 >
                   <strong style={{ fontSize: "11px" }}>
                     {msg.sender === "user" ? "You" : "Speaker"}
                   </strong>
 
-                  <div>{msg.text}</div>
+                  <div style={{ whiteSpace: "pre-line", wordBreak: "break-word", textAlign: "left" }}>{msg.text}</div>
 
                   <small style={{ fontSize: "10px", opacity: 0.8 }}>
                     {msg.time}
@@ -1014,66 +1126,73 @@ function App() {
             <div
               style={{
                 display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: isMobile ? "8px" : "10px",
-                borderTop: `1px solid ${theme.border}`,
+                alignItems: "flex-end",
+                flex: 1,
+                background: !isListening
+                  ? "#ccc"
+                  : darkMode
+                    ? "#3a3a3a"
+                    : "#f1f1f1",
+                borderRadius: "25px",
+                padding: "8px 12px",
+                opacity: !isListening ? 0.6 : 1,
+                position: "relative",
               }}
             >
-              <div
+              {/* TEXTAREA */}
+              <textarea
+                ref={inputRef}
+                value={manualInput}
+                onChange={handleInput}
+                value={manualInput}
+                onChange={handleInput}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    addManualMessage();
+                  }
+                }}
+                disabled={!isListening}
+                placeholder={
+                  isListening ? "Type message..." : "Start meeting to type..."
+                }
+                rows={1}
                 style={{
+                  fontFamily: "Arial",
+                  flex: 1,
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  color: theme.text,
+                  fontSize: isMobile ? "14px" : "13px",
+                  resize: "none",
+                  maxHeight: "120px",
+                  overflowY: "auto",
+                  paddingRight: "40px", // 👈 space for send button
+                }}
+
+              />
+
+              {/* SEND BUTTON INSIDE */}
+              <button
+                onClick={addManualMessage}
+                disabled={!isListening}
+                style={{
+                  position: "absolute",
+                  right: "10px",
+                  bottom: "8px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: theme.primary,
                   display: "flex",
                   alignItems: "center",
-                  flex: 1,
-                  background: !isListening
-                    ? "#ccc"
-                    : darkMode
-                      ? "#3a3a3a"
-                      : "#f1f1f1",
-                  borderRadius: "25px",
-                  padding: "8px 12px",
-                  opacity: !isListening ? 0.6 : 1,
+                  justifyContent: "center",
                 }}
               >
-                <input
-                  type="text"
-                  placeholder={
-                    isListening ? "Type message..." : "Start meeting to type..."
-                  }
-                  value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") addManualMessage();
-                  }}
-                  disabled={!isListening}
-                  style={{
-                    flex: 1,
-                    border: "none",
-                    outline: "none",
-                    background: "transparent",
-                    color: theme.text,
-                    fontSize: isMobile ? "14px" : "13px",
-                  }}
-                />
-
-                {/* SEND BUTTON INSIDE */}
-                <button
-                  onClick={addManualMessage}
-                  disabled={!isListening}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: theme.primary,
-                    fontWeight: "bold",
-                    padding: "4px 6px",
-                  }}
-                >
-                  <Send size={18} />
-                </button>
-              </div>
+                <Send size={18} />
+              </button>
             </div>
-
             {isMobile && showMenu && (
               <div
                 onClick={() => setShowMenu(false)}
@@ -1177,6 +1296,63 @@ function App() {
           </div>
 
         </div>
+
+      ) : page === "about" ? (
+        //ABOUT PAGE
+        <div style={{ flex: 1, padding: "20px" }}>
+
+          <button
+            onClick={() => setPage("main")}
+            style={{ ...buttonStyle(), background: theme.primary }}
+          >
+            ⬅ Back
+          </button>
+
+          <h2 style={{ color: theme.text, marginTop: "20px" }}>
+            ℹ️ About Smart Meeting Tool
+          </h2>
+
+                <div style={cardStyle}>
+                  <p>
+                    This Smart Meeting Tool captures live speech, converts it into text,
+                    and generates summaries and action items automatically.
+                  </p>
+
+                  <br />
+                  <div>
+                    <p>
+                      The Smart Meeting Tool is a powerful web application that captures
+                      live speech and converts it into real-time text. It uses AI to
+                      automatically generate summaries and extract action items,
+                      helping users stay organized and focused during meetings.
+                    </p>
+
+                    <br />
+
+                    <p>
+                      Designed with accessibility in mind, this tool supports deaf and
+                      hard-of-hearing users by making spoken conversations visible
+                      and easy to follow. It also allows users to export meeting
+                      notes into a structured PDF for future reference.
+                    </p>
+
+                    <br />
+
+                    <p>
+                      Built to improve productivity, clarity, and inclusivity in
+                      communication.
+                    </p>
+                  </div>
+                  
+                  <br />
+                  <br />
+                  <br />
+                  <p>
+                    Built by: <b>Botlhale Village Tech Hub</b>
+                  </p>
+                </div>
+
+        </div>
       ) : (
         // HISTORY PAGE
         <div style={{ flex: 1, padding: "20px", overflowY: "auto" }}>
@@ -1256,7 +1432,8 @@ function App() {
             </div>
           )}
         </div>
-      )}
+      )
+      }
 
     </div>
   );
