@@ -1014,7 +1014,7 @@ function App() {
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
                 {/* TEXT */}
-                <div style={{ textAlign: "center", fontSize: "14px", opacity: 0.8 }}>
+                <div style={{ textAlign: "center", fontSize: "14px", opacity: 0.8, color: theme.text }}>
                   {isListening && volume > 10 ? "🎤 Hearing sound..." : "⚠️ Speak louder..."}
                 </div>
 
@@ -1027,8 +1027,6 @@ function App() {
                 <div style={{ fontWeight: "bold" }}>
                   {formatTime(seconds)}
                 </div>
-
-                <span style={{ opacity: 0.8 }}>Recording</span>
               </div>
             )}
 

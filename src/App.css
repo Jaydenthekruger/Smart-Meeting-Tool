@@ -193,7 +193,7 @@
 }
 .animated-bg {
   height: 100vh;
-  background: linear-gradient(270deg, #0f172a, #1e293b, #38bdf8, #0ea5e9);
+  background: linear-gradient(270deg, #1e315c, #386cb9, #38bdf8, #0ea5e9);
   background-size: 800% 800%;
 
   animation: gradientMove 15s ease infinite;
