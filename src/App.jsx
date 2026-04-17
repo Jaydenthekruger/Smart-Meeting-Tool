@@ -643,7 +643,7 @@ function App() {
       style={{
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
-        height: "100vh",
+       // height: "100vh",
         background: theme.bg,
         color: theme.text,
         transition: "background 0.4s ease, color 0.4s ease",
