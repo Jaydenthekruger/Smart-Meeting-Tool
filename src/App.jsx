@@ -1013,26 +1013,6 @@ function App() {
             {isListening && (
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
 
-                {/* 🔊 Volume Bar */}
-                <div
-                  style={{
-                    width: "100px",
-                    height: "10px",
-                    background: "#ddd",
-                    borderRadius: "5px",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${Math.min(volume, 100)}%`,
-                      height: "100%",
-                      background: volume > 50 ? "#22c55e" : "#ef4444",
-                      transition: "width 0.1s",
-                    }}
-                  />
-                </div>
-
                 {/* TEXT */}
                 <div style={{ textAlign: "center", fontSize: "14px", opacity: 0.8 }}>
                   {isListening && volume > 10 ? "🎤 Hearing sound..." : "⚠️ Speak louder..."}
