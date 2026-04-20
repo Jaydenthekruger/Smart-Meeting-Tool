@@ -41,6 +41,7 @@ function App() {
     }
   }, [messages]);
 
+  // ---------- BODY SCROLL LOCK ----------
   useEffect(() => {
     if (isMobile && showMenu) {
       document.body.style.overflow = "hidden";
@@ -49,7 +50,7 @@ function App() {
     }
   }, [showMenu, isMobile]);
 
-  // ---------- THEME ----------
+  // ---------- THEME CONFIGURATION ----------
   const theme = {
     bg: darkMode ? "#0f172a" : "#f3f4f6",
     sidebar: darkMode ? "#111827" : "#ffffff",
@@ -68,7 +69,7 @@ function App() {
     border: darkMode ? "#374151" : "#e5e7eb",
   };
 
-  // ---------- SPEECH ----------
+  // ---------- SPEECH RECOGNITION & AUDIO ----------
   const startListening = () => {
     // 🎤 AUDIO LEVEL DETECTION
     navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
@@ -165,6 +166,7 @@ function App() {
     recognitionRef.current = recognition;
   };
 
+  // ---------- STOP & CLEAR ----------
   const stopListening = () => {
     console.log("STOP CLICKED");
 
@@ -194,6 +196,7 @@ function App() {
     setLiveText("");
   };
 
+  // FULL RESET (for logout or new meeting)
   const clearAll = () => {
     // 🔥 FULL STOP EVERYTHING
 
@@ -226,7 +229,7 @@ function App() {
     setTypedTranscript("");
   };
 
-  // ---------- DETAILED LOCAL SUMMARIZER ----------
+  // ---------- LOCAL SUMMARIZER ----------
   const generateSummaryOnly = (text, mode) => {
     const sentences = text.split(/(?<=[.?!])\s+/);
 
@@ -244,6 +247,7 @@ function App() {
     return selected.map((s) => "• " + s).join("\n");
   };
 
+  // ---------- ACTION GENERATOR ----------
   const generateActionsOnly = (text) => {
     const sentences = text.split(/(?<=[.?!])\s+/);
 
@@ -260,7 +264,7 @@ function App() {
     }));
   };
 
-  // ---------- SUMMARY ----------
+  //---------- SUMMARY ----------
   const handleSummaryOnly = () => {
     const combinedText = speechTranscript + " " + typedTranscript;
 
@@ -278,7 +282,7 @@ function App() {
     });
   };
 
-  // Summary 
+  // ---------- ACTIONS ----------
   const handleActionsOnly = () => {
     const combinedText = speechTranscript + " " + typedTranscript;
 
@@ -296,6 +300,7 @@ function App() {
     });
   };
 
+  // ---------- TOGGLE ACTION DONE ----------
   const toggleAction = (id) => {
     setActions((prev) =>
       prev.map((a) =>
@@ -304,6 +309,7 @@ function App() {
     );
   };
 
+  // ---------- ADD MANUAL MESSAGE ----------
   const addManualMessage = () => {
     if (!manualInput.trim()) return;
 
@@ -327,7 +333,7 @@ function App() {
     }
   };
 
-  // ---------- PDF ----------
+  // ---------- PDF EXPORT ----------
   const exportPDF = () => {
     const logo = "/botlhale-logo.png";
     const doc = new jsPDF();
@@ -498,6 +504,7 @@ function App() {
     doc.save("Meeting_Report.pdf");
   };
 
+  // ----------UI STYLES ----------
   const buttonStyle = (color) => ({
     padding: "10px 18px",
     borderRadius: "6px",
@@ -508,6 +515,7 @@ function App() {
     margin: "5px",
   });
 
+  // ---------- CARD STYLE ----------
   const cardStyle = {
     background: theme.card,
     padding: isMobile ? "14px" : "20px", // ✅ smaller on mobile
@@ -516,6 +524,7 @@ function App() {
     transition: "background 0.4s ease, color 0.4s ease, border 0.4s ease",
   };
 
+  // ---------- TIMER & RECORDING ----------
   useEffect(() => {
     let interval;
 
@@ -530,6 +539,7 @@ function App() {
     return () => clearInterval(interval);
   }, [isListening]);
 
+  // ---------- LOAD HISTORY & CLEANUP ----------
   useEffect(() => {
     const saved = localStorage.getItem("meetingHistory");
 
@@ -549,6 +559,7 @@ function App() {
     }
   }, []);
 
+  // ---------- RESPONSIVENESS HANDLING ----------
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -559,6 +570,7 @@ function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // ---------- TIME FORMAT ----------
   const formatTime = (s) => {
     const mins = Math.floor(s / 60);
     const secs = s % 60;
@@ -567,6 +579,7 @@ function App() {
       .padStart(2, "0")}`;
   };
 
+  // ---------- PULSING ANIMATION ----------
   const pulseStyle = {
     width: "10px",
     height: "10px",
@@ -575,6 +588,7 @@ function App() {
     animation: "pulse 1s infinite",
   };
 
+  //  keyframes for pulsing effect
   const pulseKeyframes = `
 @keyframes pulse {
   0% { transform: scale(1); opacity: 1; }
@@ -582,6 +596,8 @@ function App() {
   100% { transform: scale(1); opacity: 1; }
 }
 `;
+
+  // ---------- HANDLE MANUAL INPUT & AUTO-RESIZE ----------
   const handleInput = (e) => {
     setManualInput(e.target.value);
 
@@ -589,6 +605,7 @@ function App() {
     e.target.style.height = e.target.scrollHeight + "px";
   };
 
+  // ---------- INJECT PULSE KEYFRAMES ----------
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = pulseKeyframes;
@@ -597,6 +614,7 @@ function App() {
     return () => document.head.removeChild(style);
   }, []);
 
+  // ---------- SPEECH BUFFER CHECK ----------
   useEffect(() => {
     if (!isListening) return;
 
@@ -627,6 +645,7 @@ function App() {
     return () => clearInterval(interval);
   }, [isListening]);
 
+  // ---------- DARK MODE PERSISTENCE ----------
   useEffect(() => {
     const savedMode = localStorage.getItem("darkMode");
     if (savedMode !== null) {
@@ -634,414 +653,237 @@ function App() {
     }
   }, []);
 
+  // Save dark mode preference whenever it changes
   useEffect(() => {
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
+  // ---------- APPLY DARK MODE CLASS TO BODY ----------
+  useEffect(() => {
+    document.body.classList.toggle("dark", darkMode);
+  }, [darkMode]);
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: isMobile ? "column" : "row",
-       // height: "100vh",
-        background: theme.bg,
-        color: theme.text,
-        transition: "background 0.4s ease, color 0.4s ease",
-      }}
-    >
+    // ---------- MAIN CONTAINER ----------
+    <div className="main-container">
+
       {/* SIDEBAR */}
-      <div
-        style={{
-          position: isMobile ? "fixed" : "relative",
-          top: isMobile ? "88px" : "0",
-          left: 0,
-          height: isMobile ? "calc(100vh - 88px)" : "auto",
-          width: isMobile ? "260px" : "220px",
-          background: theme.sidebar,
-          zIndex: 30,
+      <div className={`sidebar ${showMenu ? "open" : ""}`}>
 
-          transform: isMobile
-            ? showMenu
-              ? "translateX(0)"
-              : "translateX(-100%)"
-            : "none",
-
-          transition: "transform 0.3s ease, background 0.4s ease",
-          boxShadow: isMobile && showMenu ? "2px 0 10px rgba(0,0,0,0.3)" : "none",
-        }}
-      >
         {/* TOP SECTION*/}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "20px" }}>
+
+        {/*LOGO & TITLE */}
+        <div className="header">
           <img
             src="/botlhale-logo.png"
             alt="Botlhale Village"
-            style={{ width: "40px", height: "40px", objectFit: "contain", paddingLeft: "20px" }}
+            className="header-logo"
           />
 
           <div>
-            <div style={{ fontWeight: "bold", color: theme.primary }}>
+            <div className="header-title">
               Botlhale Village
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            width: "85%",
-            paddingLeft: "20px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
-        >
+        <div className="sidebar-top">
           {/* TOP */}
-          <div>
-            <h3 style={{ marginBottom: "15px" }}> Meeting Panel</h3>
+          <div className="panel-top">
+            <h3 className="panel-title">Meeting Panel</h3>
 
             {/* MODE */}
-            <div style={{ marginBottom: "15px" }}>
-              <label style={{ fontSize: "12px", opacity: 0.7 }}>
+            <div className="panel-mode">
+              <label className="panel-label">
                 Meeting Mode
               </label>
 
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  borderRadius: "6px",
-                  marginTop: "5px",
-                }}
+                className="panel-select"
               >
                 <option>Daily Standup</option>
                 <option>Technical Discussion</option>
                 <option>HR / Admin</option>
               </select>
             </div>
-
-            {/* DARK MODE */}
-
           </div>
 
           {/* BOTTOM ACTIONS */}
-          <div>
-            <div
-              style={{
-                marginBottom: "10px",
-                fontSize: "12px",
-                opacity: 0.6,
-              }}
-            >
-            </div>
+          <div className="sidebar-actions">
 
-            <button
-              onClick={exportPDF}
-              style={{
-                width: "100%",
-                padding: isMobile ? "14px" : "10px",
-                borderRadius: "8px",
-                border: "none",
-                background: theme.primary,
-                color: "white",
-                cursor: "pointer",
-                fontWeight: "bold",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                marginBottom: "10px",
-              }}
-            >
+            <div className="sidebar-actions-label"></div>
+
+            <button onClick={exportPDF} className="sidebar-btn btn-primary">
               <FileText size={18} /> Export PDF
             </button>
+
+            <button
+              onClick={() => {
+                handleSummaryOnly();
+                setPage("results");
+                setShowMenu(false);
+              }}
+              className="sidebar-btn btn-success"
+            >
+              🧠 Generate Summary
+            </button>
+
+            <button
+              onClick={() => {
+                handleActionsOnly();
+                setPage("actions");
+                setShowMenu(false);
+              }}
+              className="sidebar-btn btn-warning"
+            >
+              ✅ Generate Actions
+            </button>
+
+            <button
+              onClick={() => {
+                setPage("history");
+                setShowMenu(false);
+              }}
+              className="sidebar-btn btn-gray"
+            >
+              <History size={18} /> History
+            </button>
+
+            <button
+              onClick={() => {
+                setPage("about");
+                setShowMenu(false);
+              }}
+              className="sidebar-btn btn-indigo btn-about"
+            >
+              ℹ️ About
+            </button>
+
+            <button
+              onClick={() => {
+                if (window.confirm("Are you sure you want to log out?")) {
+                  setPage("main");
+                }
+              }}
+              className="sidebar-btn btn-danger"
+            >
+              Log out
+            </button>
+
           </div>
-          <button
-            onClick={() => {
-              handleSummaryOnly();
-              setPage("results");
-              setShowMenu(false);
-            }}
-            style={{
-              width: "100%",
-              padding: isMobile ? "14px" : "10px",
-              borderRadius: "8px",
-              border: "none",
-              background: theme.success,
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              marginBottom: "10px",
-            }}
-          >
-            🧠 Generate Summary
-          </button>
 
-          <button
-            onClick={() => {
-              handleActionsOnly();
-              setPage("actions");
-              setShowMenu(false);
-            }}
-            style={{
-              width: "100%",
-              padding: isMobile ? "14px" : "10px",
-              borderRadius: "8px",
-              border: "none",
-              background: theme.warning,
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              marginBottom: "10px",
-            }}
-          >
-            ✅ Generate Actions
-          </button>
-
-          <button
-            onClick={() => {
-              setPage("history");
-              setShowMenu(false);
-            }}
-            style={{
-              width: "100%",
-              padding: isMobile ? "14px" : "10px",
-              borderRadius: "8px",
-              border: "none",
-              background: "gray",
-              color: "white",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              marginBottom: "10px",
-            }}
-          >
-            <History size={18} /> History
-          </button>
-
-          <button
-            onClick={() => {
-              setPage("about");
-              setShowMenu(false);
-            }}
-            style={{
-              width: "100%",
-              padding: isMobile ? "14px" : "10px",
-              borderRadius: "8px",
-              border: "none",
-              background: "#6366f1",
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              marginBottom: "10px",
-              marginTop: "85px", // push to bottom
-            }}
-          >
-            ℹ️ About
-          </button>
-
-          <button
-            onClick={() => {
-              if (window.confirm("Are you sure you want to log out?")) {
-                // Clear all data and reset states
-                setPage("main");
-              }
-            }}
-            style={{
-              width: "100%",
-              padding: isMobile ? "14px" : "10px",
-              borderRadius: "8px",
-              border: "none",
-              background: theme.danger,
-              color: "white",
-              cursor: "pointer",
-              fontWeight: "bold",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-            }}
-          >
-            Log out
-          </button>
         </div>
+
       </div>
 
       {/* MAIN */}
 
       {page === "main" ? (
         // MAIN PAGE
-        <div className="animated-bg" style={{
-          flex: 1,
-          paddingTop: isMobile ? "10px" : "0px",
-          paddingBottom: isMobile ? "10px" : "0px",
-          paddingLeft: isMobile ? "10px" : "20px",
-          paddingRight: isMobile ? "10px" : "20px",
-          overflowY: "auto"
-        }}>
+        <div className="animated-bg">
+
+          {/* TOPBAR */}
           {!isMobile && (
-            <h1 className="text-white p-10">
-              🎤 Smart Meeting Tool
-            </h1>
+            <div className="topbar">
+
+              {/* LEFT TITLE */}
+              <h1 className="topbar-title">
+                🎤 Smart Meeting Tool
+              </h1>
+
+              {/* RIGHT DARK MODE */}
+              <div
+                className="theme-toggle"
+                onClick={() => setDarkMode(!darkMode)}
+              >
+                <div className="theme-toggle-circle">
+                  {darkMode ? "🌙" : "☀️"}
+                </div>
+              </div>
+
+            </div>
           )}
 
+          {/* MOBILE TOPBAR */}
           {isMobile && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "12px 14px",
-                background: theme.sidebar,
-                borderBottom: `1px solid ${theme.border}`,
-                position: "sticky",
-                top: 0,
-                zIndex: 20,
-              }}
-            >
+            <div className="mobile-topbar">
+
               {/* TOGGLE BUTTON */}
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: theme.text,
-                  marginRight: "50px",
-                }}
+                className="mobile-menu-btn"
               >
                 {showMenu ? <ArrowLeft size={22} /> : <Menu size={22} />}
               </button>
 
-              {/* TITLE CHANGES */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between", // 👈 key fix
-                  width: "100%",
-                }}
-              >
-                {/* LEFT SIDE */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <strong style={{ fontSize: "16px" }}>
+              {/* CENTER */}
+              <div className="mobile-center">
+
+                {/* LEFT */}
+                <div className="mobile-left">
+                  <strong className="mobile-title">
                     {showMenu ? "Menu" : "Smart Meeting Tool"}
                   </strong>
                 </div>
 
-                {/* RIGHT SIDE (DARK MODE SWITCH) */}
+                {/* RIGHT (DARK MODE) */}
                 <div
+                  className="theme-toggle"
                   onClick={() => setDarkMode(!darkMode)}
-                  style={{
-                    width: "52px",
-                    height: "26px",
-                    borderRadius: "999px",
-                    background: darkMode ? "#1f2937" : "#fbbf24",
-                    position: "relative",
-                    cursor: "pointer",
-                    transition: "0.3s ease",
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "2px",
-                    boxShadow: "inset 0 0 5px rgba(0,0,0,0.2)",
-                  }}
                 >
-                  <div
-                    style={{
-                      width: "22px",
-                      height: "22px",
-                      borderRadius: "50%",
-                      background: darkMode ? "#374151" : "#fff7ed",
-                      position: "absolute",
-                      top: "2px",
-                      left: darkMode ? "28px" : "2px",
-                      transition: "0.3s ease",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "12px",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                    }}
-                  >
+                  <div className="theme-toggle-circle">
                     {darkMode ? "🌙" : "☀️"}
                   </div>
                 </div>
+
               </div>
 
-              <div style={{ width: "22px" }} />
+              <div className="mobile-spacer" />
+
             </div>
           )}
 
           {/* BUTTONS */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px", marginTop: "10px" }}>
+          <div className="button-bar">
 
-            {/* Left group: Start / Stop */}
-            <div style={{ display: "flex", gap: "10px" }}>
+            {/* LEFT: Start / Stop */}
+            <div className="button-group">
               {!isListening ? (
-                <button style={{
-                  ...buttonStyle(),
-                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)"
-                }}
-                  onClick={startListening}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                >
+                <button className="btn btn-start" onClick={startListening}>
                   <Play size={16} /> Start
                 </button>
               ) : (
-                <button style={{
-                  ...buttonStyle(),
-                  background: "linear-gradient(135deg, #ef4444, #f87171)"
-                }} onClick={stopListening}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}>
+                <button className="btn btn-stop" onClick={stopListening}>
                   <Square size={16} /> Stop
                 </button>
               )}
             </div>
 
+            {/* STATUS */}
             {isListening && (
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-
-                {/* TEXT */}
-                <div style={{ textAlign: "center", fontSize: "14px", opacity: 0.8, color: theme.text }}>
-                  {isListening && volume > 10 ? "🎤 Hearing sound..." : "⚠️ Speak louder..."}
+              <div className="button-group">
+                <div className="status-text">
+                  {volume > 10 ? "🎤 Hearing sound..." : "⚠️ Speak louder..."}
                 </div>
-
               </div>
             )}
-            {isListening && (
-              <div style={{ display: "flex", marginLeft: "auto", alignItems: "center", gap: "10px" }}>
-                <div style={pulseStyle}></div>
 
-                <div style={{ fontWeight: "bold" }}>
+            {/* TIMER RIGHT */}
+            {isListening && (
+              <div className="button-group right">
+                <div className="pulse-dot"></div>
+                <div className="timer">
                   {formatTime(seconds)}
                 </div>
               </div>
             )}
 
-            {/* Right group: Clear */}
+            {/* CLEAR BUTTON */}
             {!isListening && (
-              <div style={{ display: "flex", marginLeft: "auto" }}>
-                <button
-                  style={{
-                    ...buttonStyle(),
-                    background: "linear-gradient(135deg, #f97316, #fb923c)"
-                  }}
-                  onClick={clearAll}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                >
+              <div className="button-group right">
+                <button className="btn btn-clear" onClick={clearAll}>
                   <Trash2 size={16} /> Clear
                 </button>
               </div>
@@ -1050,78 +892,34 @@ function App() {
           </div>
 
           {/* CHAT */}
-          <div style={cardStyle}>
-            <h2 style={{ color: theme.text }}>💬 Live Meeting Chat</h2>
+          <div className="chat-card">
+            <h2 className="chat-title">💬 Live Meeting Chat</h2>
 
-            <div
-              ref={chatRef}
-              style={{
-                fontFamily: "Arial",
-                overflowY: "auto",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-                marginBottom: "10px",
-                height: "58vh",
-              }}
-            >
+            <div ref={chatRef} className="chat-list">
               {messages.map((msg, i) => (
                 <div
                   key={i}
-                  style={{
-                    background:
-                      msg.sender === "user" ? theme.success : theme.primary,
-                    color: "white",
-                    padding: "10px",
-                    borderRadius: "10px",
-                    maxWidth: "70%",
-                    alignSelf:
-                      msg.sender === "user" ? "flex-end" : "flex-start",
-                    wordBreak: "break-word",
-                    overflowWrap: "anywhere",
-                  }}
+                  className={`chat-msg ${msg.sender === "user" ? "user" : "speaker"}`}
                 >
-                  <strong style={{ fontSize: "11px" }}>
+                  <strong>
                     {msg.sender === "user" ? "You" : "Speaker"}
                   </strong>
 
-                  <div style={{ whiteSpace: "pre-line", wordBreak: "break-word", textAlign: "left" }}>{msg.text}</div>
+                  <div className="chat-text">{msg.text}</div>
 
-                  <small style={{ fontSize: "10px", opacity: 0.8 }}>
-                    {msg.time}
-                  </small>
+                  <small>{msg.time}</small>
                 </div>
               ))}
 
               {liveText && (
-                <div style={{ opacity: 0.6, fontStyle: "italic" }}>
-                  📝 {liveText}
-                </div>
+                <div className="live-text">📝 {liveText}</div>
               )}
             </div>
 
-            {/* ✅ INPUT AREA (INSIDE CHAT) */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-end",
-                flex: 1,
-                background: !isListening
-                  ? "#ccc"
-                  : darkMode
-                    ? "#3a3a3a"
-                    : "#f1f1f1",
-                borderRadius: "25px",
-                padding: "8px 12px",
-                opacity: !isListening ? 0.6 : 1,
-                position: "relative",
-              }}
-            >
-              {/* TEXTAREA */}
+            {/* INPUT */}
+            <div className={`chat-input ${!isListening ? "disabled" : ""}`}>
               <textarea
                 ref={inputRef}
-                value={manualInput}
-                onChange={handleInput}
                 value={manualInput}
                 onChange={handleInput}
                 onKeyDown={(e) => {
@@ -1135,55 +933,22 @@ function App() {
                   isListening ? "Type message..." : "Start meeting to type..."
                 }
                 rows={1}
-                style={{
-                  fontFamily: "Arial",
-                  flex: 1,
-                  border: "none",
-                  outline: "none",
-                  background: "transparent",
-                  color: theme.text,
-                  fontSize: isMobile ? "14px" : "13px",
-                  resize: "none",
-                  maxHeight: "120px",
-                  overflowY: "auto",
-                  paddingRight: "40px", // 👈 space for send button
-                }}
-
+                className="chat-textarea"
               />
 
-              {/* SEND BUTTON INSIDE */}
               <button
                 onClick={addManualMessage}
                 disabled={!isListening}
-                style={{
-                  position: "absolute",
-                  right: "10px",
-                  bottom: "8px",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: theme.primary,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
+                className="chat-send"
               >
                 <Send size={18} />
               </button>
             </div>
+
             {isMobile && showMenu && (
               <div
+                className="mobile-overlay"
                 onClick={() => setShowMenu(false)}
-                style={{
-                  position: "fixed",
-                  top: "60px",
-                  left: 0,
-                  width: "100%",
-                  height: "calc(100vh - 60px)",
-                  background: "rgba(0,0,0,0.4)", // dark overlay
-                  backdropFilter: "blur(4px)",   // 🔥 blur effect
-                  zIndex: 10,
-                }}
               />
             )}
           </div>
@@ -1192,21 +957,19 @@ function App() {
 
       ) : page === "results" ? (
         //SUMMARY PAGE
-        <div style={{ flex: 1, padding: "20px" }}>
+        <div className="page-container">
 
           <button
             onClick={() => setPage("main")}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-            style={{ ...buttonStyle(), background: "linear-gradient(135deg, #10b981, #34d399)" }}
+            className="btn btn-back"
           >
             ⬅ Back
           </button>
 
-          <h2 style={{ color: theme.text }}>📊 Summary</h2>
+          <h2 className="page-title">📊 Summary</h2>
 
-          <div style={cardStyle}>
-            <p>
+          <div className="card">
+            <p className={loading ? "loading" : ""}>
               {loading ? "Generating..." : summary || "No summary yet"}
             </p>
           </div>
@@ -1214,21 +977,19 @@ function App() {
         </div>
 
       ) : page === "actions" ? (
-        //ACTIONS PAGE
-        <div style={{ flex: 1, padding: "20px" }}>
+        // ACTIONS PAGE
+        <div className="page-container">
 
           <button
             onClick={() => setPage("main")}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-            style={{ ...buttonStyle(), background: "linear-gradient(135deg, #f59e0b, #fbbf24)" }}
+            className="btn btn-warning"
           >
             ⬅ Back
           </button>
 
-          <h2 style={{ color: theme.text }}>✅ Action Items</h2>
+          <h2 className="page-title">✅ Action Items</h2>
 
-          <div style={{ marginTop: "20px" }}>
+          <div className="action-list">
             {actions.length === 0 ? (
               <p>No action items detected. This meeting looks informational.</p>
             ) : (
@@ -1236,36 +997,11 @@ function App() {
                 <div
                   key={item.id}
                   onClick={() => toggleAction(item.id)}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    padding: "12px",
-                    marginBottom: "10px",
-                    borderRadius: "8px",
-                    background: theme.card,
-                    border: `1px solid ${theme.border}`,
-                    cursor: "pointer",
-                  }}
+                  className={`action-item ${item.done ? "done" : ""}`}
                 >
-                  <div
-                    style={{
-                      width: "18px",
-                      height: "18px",
-                      borderRadius: "4px",
-                      border: "2px solid",
-                      borderColor: item.done ? theme.success : theme.border,
-                      background: item.done ? theme.success : "transparent",
-                    }}
-                  />
+                  <div className="action-checkbox" />
 
-                  <span
-                    style={{
-                      textDecoration: item.done ? "line-through" : "none",
-                    }}
-                  >
+                  <span className="action-text">
                     {item.text}
                   </span>
                 </div>
@@ -1290,62 +1026,61 @@ function App() {
             ℹ️ About Smart Meeting Tool
           </h2>
 
-                <div style={cardStyle}>
-                  <p>
-                    This Smart Meeting Tool captures live speech, converts it into text,
-                    and generates summaries and action items automatically.
-                  </p>
+          <div style={cardStyle}>
+            <p>
+              This Smart Meeting Tool captures live speech, converts it into text,
+              and generates summaries and action items automatically.
+            </p>
 
-                  <br />
-                  <div>
-                    <p>
-                      The Smart Meeting Tool is a powerful web application that captures
-                      live speech and converts it into real-time text. It uses AI to
-                      automatically generate summaries and extract action items,
-                      helping users stay organized and focused during meetings.
-                    </p>
+            <br />
+            <div>
+              <p>
+                The Smart Meeting Tool is a powerful web application that captures
+                live speech and converts it into real-time text. It uses AI to
+                automatically generate summaries and extract action items,
+                helping users stay organized and focused during meetings.
+              </p>
 
-                    <br />
+              <br />
 
-                    <p>
-                      Designed with accessibility in mind, this tool supports deaf and
-                      hard-of-hearing users by making spoken conversations visible
-                      and easy to follow. It also allows users to export meeting
-                      notes into a structured PDF for future reference.
-                    </p>
+              <p>
+                Designed with accessibility in mind, this tool supports deaf and
+                hard-of-hearing users by making spoken conversations visible
+                and easy to follow. It also allows users to export meeting
+                notes into a structured PDF for future reference.
+              </p>
 
-                    <br />
+              <br />
 
-                    <p>
-                      Built to improve productivity, clarity, and inclusivity in
-                      communication.
-                    </p>
-                  </div>
-                  
-                  <br />
-                  <br />
-                  <br />
-                  <p>
-                    Built by: <b>Botlhale Village Tech Hub</b>
-                  </p>
-                </div>
+              <p>
+                Built to improve productivity, clarity, and inclusivity in
+                communication.
+              </p>
+            </div>
+
+            <br />
+            <br />
+            <br />
+            <p>
+              Built by: <b>Botlhale Village Tech Hub</b>
+            </p>
+          </div>
 
         </div>
       ) : (
         // HISTORY PAGE
-        <div style={{ flex: 1, padding: "20px", overflowY: "auto" }}>
-          <h1 style={{ color: theme.text }}>📚 Meeting History</h1>
+        <div className="page-container">
+
+          <h1 className="page-title">📚 Meeting History</h1>
 
           <button
             onClick={() => setPage("main")}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-            style={buttonStyle(theme.primary)}
+            className="btn btn-primary"
           >
             ⬅ Back
           </button>
 
-          <div style={{ marginTop: "20px" }}>
+          <div className="history-list">
             {history.length === 0 ? (
               <p>No meetings saved</p>
             ) : (
@@ -1353,19 +1088,11 @@ function App() {
                 <div
                   key={m.id}
                   onClick={() => setSelectedMeeting(m)}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                  style={{
-                    padding: "15px",
-                    marginBottom: "10px",
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    background: theme.card,
-                    border: `1px solid ${theme.border}`,
-                  }}
+                  className="history-item"
                 >
                   📅 {m.date} — ⏰ {m.time}
-                  <div style={{ fontSize: "12px", opacity: 0.7 }}>
+
+                  <div className="history-meta">
                     {m.mode}
                   </div>
                 </div>
@@ -1375,8 +1102,9 @@ function App() {
 
           {/* DETAILS */}
           {selectedMeeting && (
-            <div style={{ ...cardStyle, marginTop: "20px" }}>
-              <h2 style={{ color: theme.text }}>📄 Meeting Details</h2>
+            <div className="details-card">
+
+              <h2 className="page-title">📄 Meeting Details</h2>
 
               <p><b>Date:</b> {selectedMeeting.date}</p>
               <p><b>Mode:</b> {selectedMeeting.mode}</p>
@@ -1392,21 +1120,18 @@ function App() {
 
               <button
                 onClick={() => setSelectedMeeting(null)}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                style={buttonStyle(theme.danger)}
+                className="btn btn-danger"
               >
                 Close
               </button>
 
               <button
                 onClick={() => downloadOldPDF(selectedMeeting)}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = "0.9"}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
-                style={buttonStyle(theme.primary)}
+                className="btn btn-primary"
               >
                 📄 Download PDF
               </button>
+
             </div>
           )}
         </div>
