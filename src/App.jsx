@@ -19,6 +19,7 @@ function App() {
   const [speechTranscript, setSpeechTranscript] = useState("");
   const [typedTranscript, setTypedTranscript] = useState("");
   const [page, setPage] = useState("main"); // "main" | "history" | "results" | "actions" | "about"
+  const [sidebarView, setSidebarView] = useState("main"); // "main" | "settings"
   const [history, setHistory] = useState([]);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -33,6 +34,12 @@ function App() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const speechBufferRef = useRef("");
   const lastSpeechTimeRef = useRef(Date.now());
+  const [textSize, setTextSize] = useState(16);
+  const [themeColor, setThemeColor] = useState("blue");
+  const [fontFamily, setFontFamily] = useState("system");
+  const [isMuted, setIsMuted] = useState(false);
+  const [showSizeLabel, setShowSizeLabel] = useState(false);
+
 
   // ---------- AUTO SCROLL ----------
   useEffect(() => {
@@ -51,11 +58,19 @@ function App() {
   }, [showMenu, isMobile]);
 
   // ---------- THEME CONFIGURATION ----------
+  const themeColors = {
+    blue: "#1d4ed8",
+    red: "#dc2626",
+    green: "#16a34a",
+  };
+
   const theme = {
     bg: darkMode ? "#0f172a" : "#f3f4f6",
     sidebar: darkMode ? "#111827" : "#ffffff",
     card: darkMode ? "#1f2937" : "#ffffff",
     text: darkMode ? "#f9fafb" : "#111827",
+
+    primary: themeColors[themeColor],
 
     // 🎨 Botlhale Village Brand Colors
     primary: "#1d4ed8",   // BLUE
@@ -72,7 +87,13 @@ function App() {
   // ---------- SPEECH RECOGNITION & AUDIO ----------
   const startListening = () => {
     // 🎤 AUDIO LEVEL DETECTION
-    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+    navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    }).then((stream) => {
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const analyser = audioContext.createAnalyser();
       const microphone = audioContext.createMediaStreamSource(stream);
@@ -99,7 +120,11 @@ function App() {
 
         const avg = sum / dataArray.length;
 
-        setVolume(avg); // 👈 NEW STATE
+        if (!isMuted) {
+          setVolume(avg);
+        } else {
+          setVolume(0);
+        }; // 👈 NEW STATE
 
         requestAnimationFrame(updateVolume);
       };
@@ -124,7 +149,7 @@ function App() {
     recognition.lang = "en-US";
 
     recognition.onresult = (event) => {
-      if (isManuallyStopped.current) return;
+      if (isMuted || isManuallyStopped.current) return;
 
       let interim = "";
       let final = "";
@@ -663,40 +688,66 @@ function App() {
     document.body.classList.toggle("dark", darkMode);
   }, [darkMode]);
 
+  // LOAD SETTINGS
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("appSettings"));
+
+    if (saved) {
+      setDarkMode(saved.darkMode ?? false);
+      setTextSize(saved.textSize ?? 16);
+      setThemeColor(saved.themeColor ?? "blue");
+      setFontFamily(saved.fontFamily ?? "system");
+    }
+  }, []);
+
+  // ---------- RESET SETTINGS ----------
+  const resetSettings = () => {
+    setDarkMode(false);
+    setTextSize(16);
+    setCardColor("#1f2937");
+    setThemeColor("blue");
+    setFontFamily("system");
+  };
+
+  const closeMenu = () => {
+    if (isMobile) setShowMenu(false);
+  };
+
   return (
     // ---------- MAIN CONTAINER ----------
-    <div className="main-container">
+    <div className="main-container"
+      style={{
+        fontFamily:
+          fontFamily === "system"
+            ? "system-ui"
+            : fontFamily === "mono"
+              ? "monospace"
+              : "Poppins, sans-serif",
+      }}
+    >
 
       {/* SIDEBAR */}
+
+      {/* TOP SECTION*/}
+
       <div className={`sidebar ${showMenu ? "open" : ""}`}>
 
-        {/* TOP SECTION*/}
+        <div
+          className="sidebar-inner"
+          style={{
+            transform:
+              sidebarView === "settings"
+                ? "translateX(-50%)"
+                : "translateX(0%)",
+          }}
+        >
 
-        {/*LOGO & TITLE */}
-        <div className="header">
-          <img
-            src="/botlhale-logo.png"
-            alt="Botlhale Village"
-            className="header-logo"
-          />
+          {/* ===== MAIN PANEL ===== */}
+          <div className="sidebar-page">
+            <div className="panel-top">
+              <h3 className="panel-title">Meeting Panel</h3>
 
-          <div>
-            <div className="header-title">
-              Botlhale Village
-            </div>
-          </div>
-        </div>
-
-        <div className="sidebar-top">
-          {/* TOP */}
-          <div className="panel-top">
-            <h3 className="panel-title">Meeting Panel</h3>
-
-            {/* MODE */}
-            <div className="panel-mode">
-              <label className="panel-label">
-                Meeting Mode
-              </label>
+              <label className="panel-label">Meeting Mode</label>
 
               <select
                 value={mode}
@@ -708,81 +759,193 @@ function App() {
                 <option>HR / Admin</option>
               </select>
             </div>
+
+            <div className="sidebar-actions">
+              <button onClick={exportPDF} className="sidebar-btn btn-primary">
+                <FileText size={18} /> Export PDF
+              </button>
+
+              <button
+                onClick={() => {
+                  handleSummaryOnly();
+                  setPage("results");
+                  closeMenu();
+                }}
+                className="sidebar-btn btn-success"
+              >
+                🧠 Generate Summary
+              </button>
+
+              <button
+                onClick={() => {
+                  handleActionsOnly();
+                  setPage("actions");
+                  closeMenu();
+                }}
+                className="sidebar-btn btn-warning"
+              >
+                ✅ Generate Actions
+              </button>
+
+              <button
+                onClick={() => { setPage("history"); closeMenu(); }}
+                className="sidebar-btn btn-gray"
+              >
+                <History size={18} /> History
+              </button>
+
+              <button
+                onClick={() => { setSidebarView("settings") }}
+                className="sidebar-btn btn-indigo"
+              >
+                ⚙️ Settings
+              </button>
+
+              <button
+                onClick={() => { setPage("about"); setShowMenu(false); }}
+                className="sidebar-btn btn-danger"
+              >
+                <History size={18} /> About
+              </button>
+
+            </div>
           </div>
 
-          {/* BOTTOM ACTIONS */}
-          <div className="sidebar-actions">
+          {/* ===== SETTINGS PANEL ===== */}
+          <div className="sidebar-page">
 
-            <div className="sidebar-actions-label"></div>
+            {/* BACK */}
+            <div className="settings-header">
+              <button
+                onClick={() => setSidebarView("main")}
+                className="back-btn"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <h3>Settings</h3>
+            </div>
 
-            <button onClick={exportPDF} className="sidebar-btn btn-primary">
-              <FileText size={18} /> Export PDF
-            </button>
+            {/* ===== APPEARANCE ===== */}
+            <div className="settings-group">
+              <h4>🎨 Appearance</h4>
 
-            <button
-              onClick={() => {
-                handleSummaryOnly();
-                setPage("results");
-                setShowMenu(false);
-              }}
-              className="sidebar-btn btn-success"
-            >
-              🧠 Generate Summary
-            </button>
+              <div className="setting-item">
+                <span>Dark Mode</span>
 
-            <button
-              onClick={() => {
-                handleActionsOnly();
-                setPage("actions");
-                setShowMenu(false);
-              }}
-              className="sidebar-btn btn-warning"
-            >
-              ✅ Generate Actions
-            </button>
+                <div
+                  className={`toggle ${darkMode ? "active" : ""}`}
+                  onClick={() => setDarkMode(!darkMode)}
+                >
+                  <div className="toggle-circle">
+                    {darkMode ? "🌙" : "☀️"}
+                  </div>
+                </div>
+              </div>
 
-            <button
-              onClick={() => {
-                setPage("history");
-                setShowMenu(false);
-              }}
-              className="sidebar-btn btn-gray"
-            >
-              <History size={18} /> History
-            </button>
+              <div className="setting-item column">
 
-            <button
-              onClick={() => {
-                setPage("about");
-                setShowMenu(false);
-              }}
-              className="sidebar-btn btn-indigo btn-about"
-            >
-              ℹ️ About
-            </button>
+                <span>Text Size</span>
 
-            <button
-              onClick={() => {
-                if (window.confirm("Are you sure you want to log out?")) {
-                  setPage("main");
-                }
-              }}
-              className="sidebar-btn btn-danger"
-            >
-              Log out
+                {/* FLOATING VALUE */}
+                {showSizeLabel && (
+                  <div className="slider-popup">
+                    {textSize}px
+                  </div>
+                )}
+
+                <input
+                  type="range"
+                  min="12"
+                  max="30"
+                  step="2"
+                  value={textSize}
+                  onChange={(e) => setTextSize(Number(e.target.value))}
+
+                  onMouseDown={() => setShowSizeLabel(true)}
+                  onMouseUp={() => setTimeout(() => setShowSizeLabel(false), 600)}
+
+                  onTouchStart={() => setShowSizeLabel(true)}
+                  onTouchEnd={() => setShowSizeLabel(false)}
+                />
+
+              </div>
+
+            </div>
+
+            {/* ===== AUDIO ===== */}
+            <div className="settings-group">
+              <h4>🔊 Audio</h4>
+
+              {/* MUTE TOGGLE */}
+              <div className="setting-item">
+                <span>Mute Microphone</span>
+
+                <div
+                  className={`toggle ${isMuted ? "active" : ""}`}
+                  onClick={() => {
+                    setIsMuted(!isMuted);
+
+                    if (!isMuted) {
+                      stopListening(); // mute = stop mic
+                    }
+                  }}
+                >
+                  <div className="toggle-circle">
+                    {isMuted ? "🔇" : "🔊"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ===== THEME COLOR ===== */}
+            <div className="settings-group">
+              <h4>🎨 Theme Color</h4>
+              <div className="color-options">
+                {["blue", "red", "green"].map((c) => (
+                  <div
+                    key={c}
+                    className={`color-dot ${themeColor === c ? "active" : ""}`}
+                    style={{ background: c }}
+                    onClick={() => setThemeColor(c)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* ===== FONT STYLE ===== */}
+            <div className="settings-group">
+              <h4>🔤 Font Style</h4>
+
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+              >
+                <option value="system">Default</option>
+                <option value="poppins">Poppins</option>
+                <option value="mono">Monospace</option>
+              </select>
+            </div>
+
+            {/*----- RESET BUTTON -----*/}
+            <button onClick={resetSettings} className="reset-btn">
+              Reset to Default
             </button>
 
           </div>
 
         </div>
-
       </div>
 
       {/* MAIN */}
 
       {page === "main" ? (
         // MAIN PAGE
-        <div className="animated-bg">
+        <div className="animated-bg"
+          style={{
+            background: darkMode
+              ? `linear-gradient(135deg, ${themeColors[themeColor]}33, #0f172a)`
+              : `linear-gradient(135deg, ${themeColors[themeColor]}22, #f3f4f6)`
+          }}>
 
           {/* TOPBAR */}
           {!isMobile && (
@@ -815,7 +978,7 @@ function App() {
                 onClick={() => setShowMenu(!showMenu)}
                 className="mobile-menu-btn"
               >
-                {showMenu ? <ArrowLeft size={22} /> : <Menu size={22} />}
+                {showMenu ? <ArrowLeft size={18} /> : <Menu size={22} />}
               </button>
 
               {/* CENTER */}
@@ -905,7 +1068,12 @@ function App() {
                     {msg.sender === "user" ? "You" : "Speaker"}
                   </strong>
 
-                  <div className="chat-text">{msg.text}</div>
+                  <div
+                    className="chat-text"
+                    style={{ fontSize: `${textSize}px` }}
+                  >
+                    {msg.text}
+                  </div>
 
                   <small>{msg.time}</small>
                 </div>
@@ -1013,57 +1181,100 @@ function App() {
 
       ) : page === "about" ? (
         //ABOUT PAGE
-        <div style={{ flex: 1, padding: "20px" }}>
+        <div className="page-container">
 
           <button
             onClick={() => setPage("main")}
-            style={{ ...buttonStyle(), background: theme.primary }}
+            className="btn btn-back"
           >
             ⬅ Back
           </button>
 
-          <h2 style={{ color: theme.text, marginTop: "20px" }}>
-            ℹ️ About Smart Meeting Tool
-          </h2>
+          <h2 className="page-title">ℹ️ About</h2>
 
-          <div style={cardStyle}>
-            <p>
-              This Smart Meeting Tool captures live speech, converts it into text,
-              and generates summaries and action items automatically.
-            </p>
+          <div className="about-grid">
 
-            <br />
-            <div>
+            {/* WHAT */}
+            <div
+              className="about-card"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                e.currentTarget.style.setProperty("--x", `${x}px`);
+                e.currentTarget.style.setProperty("--y", `${y}px`);
+              }}
+            >
+              <div className="about-icon">🎤</div>
+              <h3>Real-Time Capture</h3>
               <p>
-                The Smart Meeting Tool is a powerful web application that captures
-                live speech and converts it into real-time text. It uses AI to
-                automatically generate summaries and extract action items,
-                helping users stay organized and focused during meetings.
-              </p>
-
-              <br />
-
-              <p>
-                Designed with accessibility in mind, this tool supports deaf and
-                hard-of-hearing users by making spoken conversations visible
-                and easy to follow. It also allows users to export meeting
-                notes into a structured PDF for future reference.
-              </p>
-
-              <br />
-
-              <p>
-                Built to improve productivity, clarity, and inclusivity in
-                communication.
+                Converts live speech into instant text so you can follow every conversation.
               </p>
             </div>
 
-            <br />
-            <br />
-            <br />
-            <p>
-              Built by: <b>Botlhale Village Tech Hub</b>
-            </p>
+            {/* AI */}
+            <div
+              className="about-card"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                e.currentTarget.style.setProperty("--x", `${x}px`);
+                e.currentTarget.style.setProperty("--y", `${y}px`);
+              }}
+            >
+              <div className="about-icon">🧠</div>
+              <h3>Smart Summaries</h3>
+              <p>
+                Automatically generates summaries and action items from meetings.
+              </p>
+            </div>
+
+            {/* ACCESSIBILITY */}
+            <div
+              className="about-card"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                e.currentTarget.style.setProperty("--x", `${x}px`);
+                e.currentTarget.style.setProperty("--y", `${y}px`);
+              }}
+            >
+              <div className="about-icon">♿</div>
+              <h3>Accessibility First</h3>
+              <p>
+                Designed for deaf and hard-of-hearing users to make communication inclusive.
+              </p>
+            </div>
+
+            {/* PRODUCTIVITY */}
+            <div
+              className="about-card"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                e.currentTarget.style.setProperty("--x", `${x}px`);
+                e.currentTarget.style.setProperty("--y", `${y}px`);
+              }}
+            >
+              <div className="about-icon">⚡</div>
+              <h3>Boost Productivity</h3>
+              <p>
+                Stay organized and never miss key points during discussions.
+              </p>
+            </div>
+
+          </div>
+
+          {/* FOOTER */}
+          <div className="about-footer">
+            Built by <b>Botlhale Village Tech Hub</b>
           </div>
 
         </div>
