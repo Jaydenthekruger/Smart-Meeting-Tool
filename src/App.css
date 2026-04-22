@@ -1136,9 +1136,13 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-body.dark .about-card {
-  background: rgba(17, 24, 39, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+body.dark .chat-card {
+  background: rgba(31, 41, 55, 0.7);
+  backdrop-filter: blur(10px);
+}
+
+body.dark .animated-bg {
+  background: #020617 !important;
 }
 
 /* ICON */

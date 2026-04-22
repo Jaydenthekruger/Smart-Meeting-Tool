@@ -71,10 +71,10 @@ function App() {
     card: darkMode ? "#1f2937" : "#ffffff",
     text: darkMode ? "#f9fafb" : "#111827",
 
-    primary: themeColors[themeColor],
+    
 
     // 🎨 Botlhale Village Brand Colors
-    primary: "#1d4ed8",   // BLUE
+    primary: themeColors[themeColor],   // BLUE
     secondary: "#ef4444", // RED
     accent: "#ffffff",    // WHITE
 
@@ -728,10 +728,10 @@ function App() {
     }
 
     if (theme === "dark") {
-      root.style.setProperty("--bg1", "#0f172a");
-      root.style.setProperty("--bg2", "#111827");
-      root.style.setProperty("--bg3", "#1f2937");
-      root.style.setProperty("--bg4", "#000000");
+      root.style.setProperty("--bg1", "#020617"); // deep black
+      root.style.setProperty("--bg2", "#020617");
+      root.style.setProperty("--bg3", "#020617");
+      root.style.setProperty("--bg4", "#020617");
     }
 
     if (theme === "purple") {
@@ -757,6 +757,15 @@ function App() {
   useEffect(() => {
     localStorage.setItem("themePreset", themePreset);
   }, [themePreset]);
+
+  // Apply theme immediately when changed
+  useEffect(() => {
+    if (darkMode) {
+      applyTheme("dark");
+    } else {
+      applyTheme(themePreset); // restore selected theme
+    }
+  }, [darkMode]);
 
   return (
     // ---------- MAIN CONTAINER ----------
