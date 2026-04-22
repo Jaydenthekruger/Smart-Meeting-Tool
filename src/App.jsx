@@ -39,6 +39,7 @@ function App() {
   const [fontFamily, setFontFamily] = useState("system");
   const [isMuted, setIsMuted] = useState(false);
   const [showSizeLabel, setShowSizeLabel] = useState(false);
+  const [themePreset, setThemePreset] = useState("blue");
 
 
   // ---------- AUTO SCROLL ----------
@@ -709,9 +710,53 @@ function App() {
     setFontFamily("system");
   };
 
+  // SAVE SETTINGS
   const closeMenu = () => {
     if (isMobile) setShowMenu(false);
   };
+
+  // Whenever settings change, save to localStorage
+  const applyTheme = (theme) => {
+    const root = document.documentElement;
+    console.log("Theme applied:", theme);
+
+    if (theme === "blue") {
+      root.style.setProperty("--bg1", "#1e315c");
+      root.style.setProperty("--bg2", "#386cb9");
+      root.style.setProperty("--bg3", "#38bdf8");
+      root.style.setProperty("--bg4", "#0ea5e9");
+    }
+
+    if (theme === "dark") {
+      root.style.setProperty("--bg1", "#0f172a");
+      root.style.setProperty("--bg2", "#111827");
+      root.style.setProperty("--bg3", "#1f2937");
+      root.style.setProperty("--bg4", "#000000");
+    }
+
+    if (theme === "purple") {
+      root.style.setProperty("--bg1", "#3b0764");
+      root.style.setProperty("--bg2", "#6d28d9");
+      root.style.setProperty("--bg3", "#a855f7");
+      root.style.setProperty("--bg4", "#ec4899");
+    }
+  };
+
+  // Load theme preset on startup
+  useEffect(() => {
+    const saved = localStorage.getItem("themePreset");
+
+    if (saved) {
+      applyTheme(saved);
+    } else {
+      applyTheme("blue"); // default theme
+    }
+  }, []);
+
+  // Save theme preset whenever it changes
+  useEffect(() => {
+    localStorage.setItem("themePreset", themePreset);
+  }, [themePreset]);
 
   return (
     // ---------- MAIN CONTAINER ----------
@@ -898,34 +943,67 @@ function App() {
             </div>
 
             {/* ===== THEME COLOR ===== */}
-            <div className="settings-group">
-              <h4>🎨 Theme Color</h4>
-              <div className="color-options">
-                {["blue", "red", "green"].map((c) => (
-                  <div
-                    key={c}
-                    className={`color-dot ${themeColor === c ? "active" : ""}`}
-                    style={{ background: c }}
-                    onClick={() => setThemeColor(c)}
-                  />
-                ))}
-              </div>
-            </div>
+            {!darkMode && (
+              <div className="settings-group">
+                <h4>🎨 Theme Style</h4>
 
+                <div className="theme-grid">
+
+                  <div
+                    className="theme-card blue"
+                    onClick={() => {
+                      setThemePreset("blue");
+                      applyTheme("blue");
+                    }}
+                  >
+                    🌊 Blue Ocean
+                  </div>
+
+                  <div
+                    className="theme-card purple"
+                    onClick={() => {
+                      setThemePreset("purple");
+                      applyTheme("purple");
+                    }}
+                  >
+                    💜 Purple Glow
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            
             {/* ===== FONT STYLE ===== */}
             <div className="settings-group">
               <h4>🔤 Font Style</h4>
 
-              <select
-                value={fontFamily}
-                onChange={(e) => setFontFamily(e.target.value)}
-              >
-                <option value="system">Default</option>
-                <option value="poppins">Poppins</option>
-                <option value="mono">Monospace</option>
-              </select>
-            </div>
+              <div className="font-row">
 
+                <button
+                  className={`font-btn ${fontFamily === "system" ? "active" : ""}`}
+                  onClick={() => setFontFamily("system")}
+                >
+                  Default
+                </button>
+
+                <button
+                  className={`font-btn ${fontFamily === "poppins" ? "active" : ""}`}
+                  onClick={() => setFontFamily("poppins")}
+                >
+                  Poppins
+                </button>
+
+                <button
+                  className={`font-btn ${fontFamily === "mono" ? "active" : ""}`}
+                  onClick={() => setFontFamily("mono")}
+                >
+                  Mono
+                </button>
+
+              </div>
+            </div>
+            
             {/*----- RESET BUTTON -----*/}
             <button onClick={resetSettings} className="reset-btn">
               Reset to Default
@@ -940,12 +1018,7 @@ function App() {
 
       {page === "main" ? (
         // MAIN PAGE
-        <div className="animated-bg"
-          style={{
-            background: darkMode
-              ? `linear-gradient(135deg, ${themeColors[themeColor]}33, #0f172a)`
-              : `linear-gradient(135deg, ${themeColors[themeColor]}22, #f3f4f6)`
-          }}>
+        <div className="animated-bg">
 
           {/* TOPBAR */}
           {!isMobile && (
